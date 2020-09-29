@@ -5,9 +5,14 @@ const axios = require('axios');
 const { ExpressAdapter } = require('ask-sdk-express-adapter');
 
 const POKEMON_URL_BASE = "https://pokeapi.co/api/v2/pokemon";
+
 const UNKNOWN_POKEMON = "Hmmmm I don't think I'm familiar with that pokemon 👀 could you try again?"
 const UNKNOWN_TRAIT_STATMENT = " is something I am not sure about 🤔 ";
-const STOP_SKILL= "Closing pokedex... peace out! ✌️";
+
+const LAUNCH_INTENT_MSG = "Hello! Welcome to your pokedex 🐼"
+const HELP_INTENT_MSG = "Ask me anything about pokemon! For example, 'what is pikachu's height?' Would you like to continue? (yes/no)";
+const STOP_INTENT_MSG = "Closing pokedex... peace out! ✌️";
+const YES_INTENT_MSG = "Yay! ask me more about pokemon!!👺" ;
 
 const app = express();
 const port = 3000;
@@ -25,7 +30,6 @@ const pokemonNameSanitizer = name => {
 //TODO: throw error for invalid pokemon name request
 const getPokemonInfo = async (name) => {
     const pokemonInfoUrl = POKEMON_URL_BASE + "/" + name;
-    console.log(pokemonInfoUrl);
     return await axios.get(pokemonInfoUrl);
 }
 
@@ -45,11 +49,9 @@ const LaunchRequestHandler = {
         return handlerInput.requestEnvelope.request.type === 'LaunchRequest';
     },
     handle(handlerInput) {
-        const speechText = 'Hello, welcome to your pokedex!';
-
         return handlerInput.responseBuilder
-            .speak(speechText)
-            .reprompt(speechText)
+            .speak(LAUNCH_INTENT_MSG)
+            .reprompt(LAUNCH_INTENT_MSG)
             .getResponse();
     }
 }
@@ -60,26 +62,38 @@ const HelpHandler = {
         && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.HelpIntent';
     },
     handle(handlerInput) {
-        const speechText = 'Try asking me about a pokemon!';
-
         return handlerInput.responseBuilder
-            .speak(speechText)
-            .reprompt(speechText)
+            .speak(HELP_INTENT_MSG)
+            .reprompt(HELP_INTENT_MSG)
             .getResponse();
     }
 };
 
-const StopHandler = {
+const StopNoHandler = {
     canHandle(handlerInput) {
       return handlerInput.requestEnvelope.request.type === 'IntentRequest' 
-        && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.StopIntent';
+        && (handlerInput.requestEnvelope.request.intent.name === 'AMAZON.StopIntent'
+        || handlerInput.requestEnvelope.request.intent.name === 'AMAZON.NoIntent');
     },
     handle(handlerInput) {
       return handlerInput.responseBuilder
-        .speak(STOP_SKILL)
+        .speak(STOP_INTENT_MSG)
         .getResponse();
     },
-  };
+};
+
+const YesHandler = {
+    canHandle(handlerInput) {
+      return handlerInput.requestEnvelope.request.type === 'IntentRequest' 
+        && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.YesIntent';
+    },
+    handle(handlerInput) {
+      return handlerInput.responseBuilder
+        .speak(YES_INTENT_MSG)
+        .reprompt(YES_INTENT_MSG)
+        .getResponse();
+    },
+};
 
 const PokemonInfoHandler = {
     canHandle(handlerInput) {
@@ -116,12 +130,7 @@ const PokemonTraitHandler = {
         const pokemonTrait =
             handlerInput.requestEnvelope.request.intent.slots.trait.value;
  
-        console.log(pokemonTrait);
-        console.log(pokemonName);
         const traitStatement = await getPokemonTrait(pokemonName, pokemonTrait);
-    
-        console.log(traitStatement);
-
         const speechText = pokemonName + "'s " 
              + traitStatement + ". "
              + "What else would you like to know?";
@@ -136,7 +145,8 @@ const PokemonTraitHandler = {
 skillBuilder.addRequestHandlers(
     LaunchRequestHandler,
     HelpHandler,
-    StopHandler,
+    StopNoHandler,
+    YesHandler,
     PokemonInfoHandler,
     PokemonTraitHandler
 );
@@ -147,5 +157,5 @@ const adapter = new ExpressAdapter(skill, true, true);
 app.post('/',  adapter.getRequestHandlers());
 
 app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`)
+  console.log(`Pokemon Alexa Skill listening at http://localhost:${port}`)
 })
