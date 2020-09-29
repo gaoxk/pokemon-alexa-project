@@ -1,12 +1,43 @@
-const express = require('express');
 const Alexa = require('ask-sdk-core');
+const express = require('express');
+const axios = require('axios');
+
 const { ExpressAdapter } = require('ask-sdk-express-adapter');
+
+const POKEMON_URL_BASE = "https://pokeapi.co/api/v2/pokemon";
+const UNKNOWN_POKEMON = "Hmmmm I don't think I'm familiar with that pokemon 👀 could you try again?"
+const UNKNOWN_TRAIT_STATMENT = " is something I am not sure about ";
 
 const app = express();
 const port = 3000;
 const skillBuilder = Alexa.SkillBuilders.custom();
 
-//add request handlers 
+//common util
+const pokemonNameSanitizer = name => {
+    return name.replace("'s", "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase();
+}
+
+//Pokemon API utils
+const getPokemonInfo = async (name) => {
+    const pokemonInfoUrl = POKEMON_URL_BASE + "/" + sanitizedName;
+    console.log(pokemonInfoUrl);
+    return await axios.get(pokemonInfoUrl);
+}
+
+const getPokemonTrait = async (name, trait) => {
+    const data = await getPokemonInfo(name);
+    return getPokemonTraitFromData(data, trait);
+}
+const getPokemonTraitFromData = (data, trait) => {
+    //TODO: expand implementation to return information nested in json return (eg, types)
+    return !data.data[trait] ?
+     trait + UNKNOWN_TRAIT_STATMENT : trait + " is " + data.data[trait];
+}
+
+//Request Handlers  
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return handlerInput.requestEnvelope.request.type === 'LaunchRequest';
@@ -41,11 +72,45 @@ const PokemonInfoHandler = {
       return handlerInput.requestEnvelope.request.type === 'IntentRequest'
         && handlerInput.requestEnvelope.request.intent.name === 'pokemon_info';
     },
-    handle(handlerInput) {
+    async handle(handlerInput) {
         const pokemonName =
-            handlerInput.requestEnvelope.request.intent.slots.pokemon.value;
+            pokemonNameSanitizer(handlerInput.requestEnvelope.request.intent.slots.pokemon.value);
+        const data = await getPokemonInfo(pokemonName);
+        const heightStatement = getPokemonTraitFromData(data, "height");
+        const weightStatement = getPokemonTraitFromData(data, "weight");
+    
+        const speechText = pokemonName + " is a pokemon, whos " 
+             + heightStatement + " and " 
+             + weightStatement + ". "
+             + "What else would you like to know?";
+      
+        return handlerInput.responseBuilder
+            .speak(speechText)
+            .reprompt(speechText)
+            .getResponse();
+    }
+}
 
-        const speechText = "eyo you are askin bout " + pokemonName;
+const PokemonTraitHandler = {
+    canHandle(handlerInput) {
+      return handlerInput.requestEnvelope.request.type === 'IntentRequest'
+        && handlerInput.requestEnvelope.request.intent.name === 'pokemon_trait';
+    },
+    async handle(handlerInput) {
+        const pokemonName =
+            pokemonNameSanitizer(handlerInput.requestEnvelope.request.intent.slots.pokemon.value);
+        const pokemonTrait =
+            handlerInput.requestEnvelope.request.intent.slots.trait.value;
+ 
+        console.log(pokemonTrait);
+        const traitStatement = await getPokemonTrait(pokemonName, pokemonTrait);
+    
+        console.log(traitStatement);
+
+        const speechText = pokemonName + "'s " 
+             + traitStatement + ". "
+             + "What else would you like to know?";
+      
         return handlerInput.responseBuilder
             .speak(speechText)
             .reprompt(speechText)
@@ -56,7 +121,8 @@ const PokemonInfoHandler = {
 skillBuilder.addRequestHandlers(
     LaunchRequestHandler,
     HelpHandler,
-    PokemonInfoHandler
+    PokemonInfoHandler,
+    PokemonTraitHandler
 );
 
 const skill = skillBuilder.create(); 
