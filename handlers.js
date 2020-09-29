@@ -1,6 +1,7 @@
 //Intent handlers
 const pokemonUtil = require('./pokemon')
 
+//TODO: modularize conversational strings for future translation extentions
 const LAUNCH_INTENT_MSG = "Hello! Welcome to your pokedex 🐼"
 const HELP_INTENT_MSG = "Ask me anything about pokemon! For example, 'what is pikachu's height?' Would you like to continue? (yes/no)";
 const STOP_INTENT_MSG = "Closing pokedex... peace out! ✌️";

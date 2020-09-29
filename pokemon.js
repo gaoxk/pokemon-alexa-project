@@ -14,8 +14,8 @@ const pokemonNameSanitizer = name => {
 }
 
 //Pokemon API utils
-//TODO: throw error for invalid pokemon name request
 const getPokemonData = async (name) => {
+    //TODO: throw error for invalid pokemon name request
     const pokemonInfoUrl = POKEMON_URL_BASE + "/" + name;
     return await axios.get(pokemonInfoUrl);
 }
