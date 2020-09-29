@@ -6,7 +6,8 @@ const { ExpressAdapter } = require('ask-sdk-express-adapter');
 
 const POKEMON_URL_BASE = "https://pokeapi.co/api/v2/pokemon";
 const UNKNOWN_POKEMON = "Hmmmm I don't think I'm familiar with that pokemon 👀 could you try again?"
-const UNKNOWN_TRAIT_STATMENT = " is something I am not sure about ";
+const UNKNOWN_TRAIT_STATMENT = " is something I am not sure about 🤔 ";
+const STOP_SKILL= "Closing pokedex... peace out! ✌️";
 
 const app = express();
 const port = 3000;
@@ -21,8 +22,9 @@ const pokemonNameSanitizer = name => {
 }
 
 //Pokemon API utils
+//TODO: throw error for invalid pokemon name request
 const getPokemonInfo = async (name) => {
-    const pokemonInfoUrl = POKEMON_URL_BASE + "/" + sanitizedName;
+    const pokemonInfoUrl = POKEMON_URL_BASE + "/" + name;
     console.log(pokemonInfoUrl);
     return await axios.get(pokemonInfoUrl);
 }
@@ -67,6 +69,18 @@ const HelpHandler = {
     }
 };
 
+const StopHandler = {
+    canHandle(handlerInput) {
+      return handlerInput.requestEnvelope.request.type === 'IntentRequest' 
+        && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.StopIntent';
+    },
+    handle(handlerInput) {
+      return handlerInput.responseBuilder
+        .speak(STOP_SKILL)
+        .getResponse();
+    },
+  };
+
 const PokemonInfoHandler = {
     canHandle(handlerInput) {
       return handlerInput.requestEnvelope.request.type === 'IntentRequest'
@@ -103,6 +117,7 @@ const PokemonTraitHandler = {
             handlerInput.requestEnvelope.request.intent.slots.trait.value;
  
         console.log(pokemonTrait);
+        console.log(pokemonName);
         const traitStatement = await getPokemonTrait(pokemonName, pokemonTrait);
     
         console.log(traitStatement);
@@ -121,6 +136,7 @@ const PokemonTraitHandler = {
 skillBuilder.addRequestHandlers(
     LaunchRequestHandler,
     HelpHandler,
+    StopHandler,
     PokemonInfoHandler,
     PokemonTraitHandler
 );
