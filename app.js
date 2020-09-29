@@ -1,4 +1,4 @@
-//Express app start point
+//Express app start poin
 const Alexa = require('ask-sdk-core');
 const express = require('express');
 const handlers= require('./handlers')

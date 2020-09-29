@@ -1,7 +1,7 @@
 # pokemon-alexa-project
 Alexa Skill Express server for handling Pokemon related queries 🐈
 
-![alt text](convo.png "Pokemon conversation")
+![alt text](https://github.com/gaoxk/pokemon-alexa-project/blob/master/convo.PNG "Pokemon conversation")
 
 ### Improvements 
 The current project does _very_ little error catching, and is not graceful in the slightest. 
